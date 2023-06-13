@@ -173,3 +173,93 @@ To create a custom validation image, you can follow these general steps:
 5. Push the image to a container registry if you need to make it accessible to your Kubernetes cluster.
 
 With this approach, you can create a custom validation image that includes the necessary tools and scripts for validating Elasticsearch. You can then use this image in the Job template for subchart validation within your main chart.
+
+
+If you have subcharts already present within the subchart directory of your main chart, you can refer to them for installation via Helm. Helm supports nested charts, allowing you to define and manage subcharts within the main chart.
+
+To reference the existing subcharts for installation, you need to follow these steps:
+
+1. Ensure that the subcharts are organized properly within the subchart directory. Each subchart should have its own directory within the subchart directory.
+
+2. Open the `Chart.yaml` file of the main chart located in the main chart directory.
+
+3. Under the `dependencies` section, add an entry for each subchart, specifying the name and the path to the subchart directory. For example:
+
+   ```yaml
+   dependencies:
+     - name: subchart1
+       version: 1.0.0
+       repository: <subchart1-repository-url>
+       condition: subchart1.enabled
+       tags:
+         - frontend
+     - name: subchart2
+       version: 1.2.3
+       repository: <subchart2-repository-url>
+       condition: subchart2.enabled
+       tags:
+         - backend
+   ```
+
+   Replace `<subchart1-repository-url>` and `<subchart2-repository-url>` with the actual repository URLs where the subcharts are hosted. You may also need to adjust the versions, conditions, and tags according to your requirements.
+
+4. Save the `Chart.yaml` file.
+
+After adding the subchart entries in the `dependencies` section of the main chart's `Chart.yaml` file, Helm will consider these subcharts during installation.
+
+You can then use the regular Helm installation command to install the main chart:
+
+```
+helm install my-main-chart ./path/to/mainchart
+```
+
+Helm will resolve the dependencies and install the subcharts referenced in the main chart's `Chart.yaml` file along with the installation of the main chart.
+
+Please make sure you have the necessary repository configurations to access the subchart repositories. If the subcharts are not available in public repositories, you might need to add custom repository configurations to Helm using the `helm repo add` command before installing the main chart.
+
+
+
+
+
+
+
+If the subchart is already present within the subchart directory of your main chart, and you want to reference it for installation, you can use the local path to the subchart within the main chart's `Chart.yaml` file.
+
+Assuming your directory structure is as follows:
+
+```
+main-chart/
+  └── Chart.yaml
+  └── subchart/
+      └── Chart.yaml
+      └── ...
+```
+
+To reference the existing subchart located within the subchart directory, follow these steps:
+
+1. Open the `Chart.yaml` file of the main chart located in the `main-chart` directory.
+
+2. Under the `dependencies` section, add an entry for the subchart, specifying the name and the local path to the subchart directory. For example:
+
+   ```yaml
+   dependencies:
+     - name: subchart
+       version: 1.0.0
+       repository: file://./subchart
+   ```
+
+   The `repository` field uses the `file://` protocol followed by the relative path to the subchart directory.
+
+3. Save the `Chart.yaml` file.
+
+After adding the subchart entry in the `dependencies` section of the main chart's `Chart.yaml` file, Helm will consider this local subchart for installation.
+
+You can then use the regular Helm installation command to install the main chart:
+
+```shell
+helm install my-main-chart ./path/to/main-chart
+```
+
+Helm will resolve the dependencies and install the local subchart along with the main chart.
+
+Note: Ensure that the subchart directory structure and files adhere to the Helm chart structure guidelines so that it can be recognized and installed properly.
