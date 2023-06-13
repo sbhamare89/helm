@@ -40,3 +40,136 @@ You can leverage Helm hooks to execute validation steps for each subchart before
 9. When you install or upgrade the main chart using Helm, the validation jobs for each subchart will be executed before the main chart installation process. If any of the validation jobs fail, the installation or upgrade process will be aborted.
 
 By including subchart validation as part of the main chart's hooks, you can ensure that all the subcharts are validated before the main chart is installed. This approach allows you to encapsulate the validation process within the main chart itself, making it more convenient to manage and deploy.
+
+
+Certainly! Here's an example of a Job template that you can use to validate a PostgreSQL Helm subchart:
+
+In the main chart's `templates/subchart-validation.yaml`:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Name }}-validation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: validation-container
+          image: your-validation-image:tag
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Perform your validation steps here
+              # For example, you can use psql to connect to the PostgreSQL database and execute some queries
+              psql -h <postgres-host> -U <postgres-user> -d <postgres-database> -c "SELECT 1;"
+          # Add any additional container specifications or environment variables as needed
+      # Add any necessary volume mounts or other specifications
+```
+
+You will need to replace `your-validation-image:tag` with the container image and tag that you will use for performing the validation.
+
+Ensure that the `psql` command or any other necessary validation steps are included within the `command` section of the container definition. You can modify this section to suit your specific validation requirements.
+
+When the main chart is installed or upgraded, this Job template will be executed for the PostgreSQL subchart, validating its functionality before proceeding with the installation or upgrade process.
+
+
+
+To validate an Elasticsearch Helm subchart, you can use the following example of a Job template:
+
+In the main chart's `templates/subchart-validation.yaml`:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-{{ .Chart.Name }}-validation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: validation-container
+          image: your-validation-image:tag
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # Perform your validation steps here
+              # For example, you can use curl to check if Elasticsearch is responding
+              if curl --silent --fail http://elasticsearch-master:9200; then
+                echo "Elasticsearch is working fine."
+              else
+                echo "Elasticsearch is not responding."
+                exit 1
+              fi
+          # Add any additional container specifications or environment variables as needed
+      # Add any necessary volume mounts or other specifications
+```
+
+You will need to replace `your-validation-image:tag` with the container image and tag that you will use for performing the validation.
+
+Within the `command` section of the container definition, you can include the validation steps specific to Elasticsearch. In this example, it uses `curl` to check if Elasticsearch is responding by making a request to `http://elasticsearch-master:9200`. Adjust the URL and validation steps based on your Elasticsearch deployment.
+
+If the validation fails, the Job will exit with a non-zero status, which will prevent the installation or upgrade of the main chart.
+
+Remember to include any necessary volume mounts or additional container specifications based on your specific validation requirements.
+
+When the main chart is installed or upgraded, this Job template will be executed for the Elasticsearch subchart, ensuring its functionality before continuing with the installation or upgrade process.
+
+
+
+
+As an AI language model, I don't have direct access to external resources or the ability to provide specific container images. However, I can provide guidance on how you can create a custom validation image for Elasticsearch validation.
+
+To create a custom validation image, you can follow these general steps:
+
+1. Start with a base image that includes the necessary tools and dependencies for performing the validation. For example, you can use an image based on Alpine Linux or Ubuntu and install `curl` and any other required packages.
+
+2. Create a Dockerfile that describes the steps to build the image. Here's an example:
+
+   ```Dockerfile
+   # Use a base image
+   FROM ubuntu:latest
+
+   # Install required packages
+   RUN apt-get update && apt-get install -y curl
+
+   # Copy any additional scripts or files required for validation
+
+   # Set the entrypoint or command to run the validation script
+   CMD ["/path/to/validation-script.sh"]
+   ```
+
+   In the above example, the Dockerfile installs `curl` using `apt-get` and sets the entrypoint to a validation script called `validation-script.sh`.
+
+3. Write the validation script (`validation-script.sh`) that performs the specific validation steps for Elasticsearch. This script will be executed when the container starts. Here's an example:
+
+   ```bash
+   #!/bin/bash
+
+   # Perform your validation steps here
+   if curl --silent --fail http://elasticsearch-master:9200; then
+     echo "Elasticsearch is working fine."
+     exit 0  # Validation succeeded
+   else
+     echo "Elasticsearch is not responding."
+     exit 1  # Validation failed
+   fi
+   ```
+
+   In the script above, it checks if Elasticsearch is responding by making a request to `http://elasticsearch-master:9200`. Adjust the URL and validation steps based on your Elasticsearch deployment.
+
+4. Build the Docker image using the Dockerfile:
+
+   ```
+   docker build -t your-validation-image:tag .
+   ```
+
+   Replace `your-validation-image:tag` with the desired image name and tag.
+
+5. Push the image to a container registry if you need to make it accessible to your Kubernetes cluster.
+
+With this approach, you can create a custom validation image that includes the necessary tools and scripts for validating Elasticsearch. You can then use this image in the Job template for subchart validation within your main chart.
